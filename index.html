@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Sorteio de vagas</title>
+  <meta name="description" content="Guarde a ordem das vagas que você quer, risque as que saírem e veja na hora qual pedir.">
+  <meta name="theme-color" content="#0e1012">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Vagas">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="app" id="app" data-tab="lista" data-panel="lista">
+
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="var(--accent)"/>
+        <path d="M7 24V9h18v15M16 9v15" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="18.6" y="12.4" width="3.8" height="9.6" rx="1.2" fill="#fff"/>
+      </svg>
+      <div class="brand-text">
+        <strong>Sorteio de vagas</strong>
+        <span>Allegro · Jardim Avelino</span>
+      </div>
+    </div>
+    <button class="count-pill" id="countPill" type="button" aria-label="Ver vagas que já saíram">
+      <b id="countNum">0</b><span>/211 saíram</span>
+    </button>
+    <button class="icon-btn" id="btnMenu" type="button" aria-label="Mais opções">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg>
+    </button>
+  </header>
+
+  <!-- MAPA -->
+  <section class="view view-map" id="viewMap" aria-label="Mapa das vagas">
+    <div class="seg" id="mapMode" role="tablist" aria-label="O que o toque no mapa faz">
+      <button type="button" data-mode="lista" role="tab">Montar lista</button>
+      <button type="button" data-mode="saidas" role="tab">Marcar saídas</button>
+    </div>
+    <div class="map-wrap" id="mapWrap">
+      <svg class="map" id="map" role="img" aria-label="Mapa do estacionamento"></svg>
+      <div class="map-zoom">
+        <button type="button" id="zoomIn" aria-label="Aproximar">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <button type="button" id="zoomOut" aria-label="Afastar">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg>
+        </button>
+        <button type="button" id="zoomFit" aria-label="Ver o mapa inteiro">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+        </button>
+      </div>
+      <p class="map-hint" id="mapHint"></p>
+    </div>
+    <ul class="legend" aria-label="Legenda">
+      <li><i class="lg-size" style="--c: var(--g)"></i>Grande</li>
+      <li><i class="lg-size" style="--c: var(--m)"></i>Média</li>
+      <li><i class="lg-size" style="--c: var(--p)"></i>Pequena</li>
+      <li><i class="lg-pref"></i>Na lista</li>
+      <li><i class="lg-best"></i>Melhor</li>
+      <li><i class="lg-taken"></i>Saiu</li>
+    </ul>
+  </section>
+
+  <!-- LISTA -->
+  <section class="view view-list" id="viewList" aria-label="Minha lista">
+    <div class="list-head">
+      <h1>Minha ordem de preferência</h1>
+      <p id="listSummary">A 1ª é a que você mais quer.</p>
+    </div>
+    <form class="add" id="addForm" autocomplete="off">
+      <label class="add-field">
+        <span>Vaga nº</span>
+        <input id="addInput" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" placeholder="000" aria-label="Número da vaga">
+      </label>
+      <button class="btn btn-primary" type="submit">Adicionar</button>
+      <button class="btn btn-quiet only-narrow" type="button" id="btnPickOnMap">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4zM9 4v14M15 6v14"/></svg>
+        Mapa
+      </button>
+    </form>
+    <ol class="prefs" id="prefs"></ol>
+    <div class="empty" id="listEmpty" hidden>
+      <div class="empty-bay" aria-hidden="true"><span>1ª</span></div>
+      <h2>Comece pela vaga dos sonhos</h2>
+      <p>Toque nas vagas no mapa, da que você mais quer para a que menos quer. Quanto mais vagas na lista, melhor: você não sabe quando será sorteado.</p>
+      <button class="btn btn-primary only-narrow" type="button" id="btnEmptyMap">Escolher no mapa</button>
+    </div>
+  </section>
+
+  <!-- SORTEIO -->
+  <section class="view view-draw" id="viewDraw" aria-label="Sorteio">
+    <div class="hero" id="hero" data-kind="empty">
+      <div class="eyebrow" id="heroLabel">Sua melhor opção agora</div>
+      <button class="bay" id="heroBay" type="button" aria-label="Ver esta vaga no mapa">
+        <span class="bay-num" id="heroNum">—</span>
+      </button>
+      <div class="hero-meta">
+        <div class="hero-rank" id="heroRank"></div>
+        <div class="tag" id="heroSize"></div>
+        <div class="hero-loc" id="heroLoc"></div>
+      </div>
+      <div class="hero-next" id="heroNext"></div>
+      <button class="btn btn-turn" id="btnTurn" type="button">
+        <span id="btnTurnLabel">É a minha vez</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+
+    <div class="feed" id="feed" data-tone="idle">
+      <p id="feedMsg">Digite o número de cada vaga que sair.</p>
+      <button type="button" id="btnUndo" hidden>Desfazer</button>
+    </div>
+
+    <div class="pad" id="pad">
+      <div class="pad-display" id="padDisplay">
+        <span class="pad-label">Saiu a vaga</span>
+        <span class="pad-digits" id="padDigits" aria-live="polite"><i>0</i><i>0</i><i>0</i></span>
+        <span class="pad-status" id="padStatus"></span>
+      </div>
+      <div class="pad-keys">
+        <button type="button" data-key="1">1</button>
+        <button type="button" data-key="2">2</button>
+        <button type="button" data-key="3">3</button>
+        <button type="button" data-key="4">4</button>
+        <button type="button" data-key="5">5</button>
+        <button type="button" data-key="6">6</button>
+        <button type="button" data-key="7">7</button>
+        <button type="button" data-key="8">8</button>
+        <button type="button" data-key="9">9</button>
+        <button type="button" data-key="back" class="key-back" aria-label="Apagar">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h11v14H9l-6-7 6-7zM12 9.5l5 5M17 9.5l-5 5"/></svg>
+        </button>
+        <button type="button" data-key="0">0</button>
+        <button type="button" data-key="ok" class="key-ok" id="padOk">Riscar</button>
+      </div>
+    </div>
+  </section>
+
+  <nav class="tabbar" id="tabbar" aria-label="Seções">
+    <button type="button" data-tab="lista">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10"/><circle cx="4.8" cy="6" r="1.3" class="dot"/><circle cx="4.8" cy="12" r="1.3" class="dot"/><circle cx="4.8" cy="18" r="1.3" class="dot"/></svg>
+      <span>Lista</span>
+    </button>
+    <button type="button" data-tab="mapa">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4zM9 4v14M15 6v14"/></svg>
+      <span>Mapa</span>
+    </button>
+    <button type="button" data-tab="sorteio">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3.5"/><circle cx="8.7" cy="8.7" r="1" class="dot"/><circle cx="15.3" cy="8.7" r="1" class="dot"/><circle cx="12" cy="12" r="1" class="dot"/><circle cx="8.7" cy="15.3" r="1" class="dot"/><circle cx="15.3" cy="15.3" r="1" class="dot"/></svg>
+      <span>Sorteio</span>
+    </button>
+  </nav>
+</div>
+
+<!-- É A MINHA VEZ -->
+<div class="turn" id="turn" hidden role="dialog" aria-modal="true" aria-labelledby="turnKicker">
+  <button class="turn-close" id="turnClose" type="button">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+    Voltar
+  </button>
+  <div class="turn-main">
+    <p class="turn-kicker" id="turnKicker"></p>
+    <div class="turn-bay">
+      <span class="turn-num" id="turnNum"></span>
+    </div>
+    <p class="turn-meta" id="turnMeta"></p>
+  </div>
+  <svg class="turn-map" id="turnMap" aria-hidden="true"></svg>
+  <p class="turn-plan" id="turnPlan"></p>
+  <div class="turn-actions">
+    <button class="btn btn-white" id="turnYes" type="button"></button>
+    <button class="btn btn-outline" id="turnNo" type="button"></button>
+  </div>
+</div>
+
+<div class="sheet-backdrop" id="sheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheet-grip" aria-hidden="true"></div>
+    <h2 id="sheetTitle"></h2>
+    <p id="sheetText"></p>
+    <div id="sheetBody"></div>
+    <div class="sheet-actions" id="sheetActions"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden role="status">
+  <span id="toastMsg"></span>
+  <button type="button" id="toastAction" hidden></button>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
