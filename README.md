@@ -14,9 +14,13 @@ e, quando chega a sua vez, o app mostra em número grande a melhor que sobrou.
    O cartão do topo mostra sempre a sua melhor opção ainda livre.
 3. **É a minha vez**: abre o número em tela cheia, com o plano B logo abaixo.
 
-Tudo fica salvo no próprio aparelho. Para passar a lista do computador para o celular,
-use *Opções › Copiar link com a minha lista*. Depois de aberto uma vez, o app funciona
-sem internet e pode ser instalado na tela inicial.
+Tudo fica salvo no próprio aparelho, e uma cópia vai junto no endereço da página: se o
+navegador apagar os dados do site (o Safari do iPhone faz isso depois de uma semana sem
+uso), reabrir a mesma aba ou um favorito dela traz a lista de volta. Para passar a lista
+para outro aparelho, copie o endereço da página ou use *Opções › Copiar link com a minha
+lista*. Depois de aberto uma vez, o app funciona sem internet e pode ser instalado na tela
+inicial (no iPhone, o app instalado guarda os dados separado do Safari: monte a lista já
+nele, ou leve-a pelo link).
 
 Se a sua lista acabar antes da sua vez, o app sugere a vaga livre mais perto da sua
 1ª opção.
@@ -34,12 +38,33 @@ como médias) e **062 a 068** (lidas como grandes). Para corrigir, edite os conj
 
 ## Desenvolvimento
 
-Site estático, sem build: HTML, CSS e JavaScript puros.
+Site estático, sem build: HTML, CSS e JavaScript puros, com as fontes (Barlow, licença OFL)
+servidas da pasta `fonts/`.
 
 ```bash
 python -m http.server 8790
 ```
 
-Em `localhost` o service worker não é registrado, para não servir arquivos antigos.
-No site publicado ele busca a versão mais nova quando há sinal e cai para o cache quando
-não há (ou quando a rede demora mais de 2,5 s).
+Em `localhost` o service worker fica desligado, para não servir arquivos antigos; abra com
+`?sw` para ligá-lo. No site publicado ele busca a versão mais nova quando há sinal e
+responde do cache quando não há, ou quando a rede demora.
+
+## Testes
+
+`tests/bughunt.mjs` abre o app no WebKit (o motor do Safari) e no Chromium, nos tamanhos do
+iPhone 17 Pro Max e do iPad Pro 13" (em pé e deitados) e de um iPhone SE, e percorre tudo com
+toques: montar a lista, arrastar, riscar vagas, "é a minha vez", recarregar no meio, dados
+corrompidos, duas abas, navegador que não grava, e abrir sem internet. Também confere o
+layout de cada tela (nada fora da tela, sobreposto ou cortado) e salva capturas em
+`tests/shots/`.
+
+```bash
+cd tests
+npm install
+npx playwright install webkit
+npm test
+```
+
+O Chromium usado é o Edge já instalado. O WebKit do Playwright é o mesmo motor do Safari,
+mas não é o Safari do iOS: o teclado do sistema, a barra de endereço que encolhe e os gestos
+de dois dedos de verdade só dá para conferir num aparelho.

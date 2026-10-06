@@ -18,25 +18,82 @@
 
   // ---------- estado ----------
 
-  const state = { prefs: [], taken: [], chosen: null, tab: 'lista', panel: 'lista', mapMode: 'lista' };
+  // savedAt: quando a lista ou o sorteio mudaram pela última vez (para saber qual cópia é a mais nova)
+  const state = { prefs: [], taken: [], chosen: null, savedAt: 0, tab: 'lista', panel: 'lista', mapMode: 'lista' };
+  const isSpot = (n) => Number.isInteger(n) && !!LOT.byNum[n];
 
-  function loadState() {
+  // Lê o que está salvo, descartando qualquer coisa que não seja um número de vaga válido.
+  // `keepView` preserva a aba aberta (usado quando outra aba do navegador mexe nos dados).
+  function loadState(keepView) {
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem(STORE)) || {}; } catch (e) { saved = {}; }
-    const valid = (list) => [...new Set((Array.isArray(list) ? list : []).filter((n) => LOT.byNum[n]))];
+    if (typeof saved !== 'object') saved = {};
+    const valid = (list) => [...new Set((Array.isArray(list) ? list : []).filter(isSpot))];
     state.prefs = valid(saved.prefs);
     state.taken = valid(saved.taken);
-    state.chosen = LOT.byNum[saved.chosen] ? saved.chosen : null;
+    state.chosen = isSpot(saved.chosen) ? saved.chosen : null;
+    state.savedAt = Number.isFinite(saved.savedAt) ? saved.savedAt : 0;
+    if (keepView) return;
     if (['lista', 'mapa', 'sorteio'].includes(saved.tab)) state.tab = saved.tab;
     if (['lista', 'sorteio'].includes(saved.panel)) state.panel = saved.panel;
     if (['lista', 'saidas'].includes(saved.mapMode)) state.mapMode = saved.mapMode;
   }
 
+  // Se o navegador se recusar a gravar (modo restrito, armazenamento cheio), avisa em vez de fingir.
+  let saveFailed = false;
+
   function save() {
-    try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) { /* armazenamento indisponível */ }
+    let ok = true;
+    try {
+      const data = JSON.stringify(state);
+      localStorage.setItem(STORE, data);
+      ok = localStorage.getItem(STORE) === data;
+    } catch (e) {
+      ok = false;
+    }
+    if (ok !== !saveFailed) {
+      saveFailed = !ok;
+      const warn = document.getElementById('saveWarn');
+      if (warn) warn.hidden = ok;
+    }
+    syncAddress();
+  }
+
+  // Cópia de segurança no endereço da página. O Safari do iPhone apaga os dados de sites que
+  // ficam uma semana sem uso; com a lista também no endereço, reabrir a mesma aba (ou um
+  // favorito dela) traz tudo de volta.
+  function addressFor(full) {
+    let hash = '#l=' + state.prefs.join('.');
+    if (full) {
+      if (state.taken.length) hash += '&x=' + state.taken.join('.');
+      if (state.chosen != null) hash += '&c=' + state.chosen;
+      hash += '&s=' + state.savedAt;
+    }
+    return location.origin + location.pathname + location.search + hash;
+  }
+
+  function syncAddress() {
+    const hasData = state.prefs.length || state.taken.length || state.chosen != null;
+    const url = hasData ? addressFor(true) : location.origin + location.pathname + location.search;
+    if (url === location.href) return;
+    try { history.replaceState(null, '', url); } catch (e) { /* o navegador limita trocas de endereço muito seguidas */ }
+  }
+
+  function readAddress() {
+    if (location.hash.slice(0, 3) !== '#l=') return null;
+    const params = new URLSearchParams(location.hash.slice(1));
+    const list = (value) => [...new Set((value || '').split('.').map(Number).filter(isSpot))];
+    const chosen = Number(params.get('c') || NaN);
+    return {
+      prefs: list(params.get('l')),
+      taken: list(params.get('x')),
+      chosen: isSpot(chosen) ? chosen : null,
+      stamp: Number(params.get('s')) || 0, // só os endereços gravados pelo app têm data; link compartilhado não
+    };
   }
 
   function commit() {
+    state.savedAt = Date.now();
     save();
     render();
   }
@@ -112,7 +169,17 @@
     if (rankOf(n)) return { ok: false, msg: `A ${pad3(n)} já é a sua ${rankOf(n)}ª opção` };
     state.prefs.push(n);
     commit();
+    askToKeepData();
     return { ok: true, msg: `${pad3(n)} entrou como ${state.prefs.length}ª opção` };
+  }
+
+  // Pede ao navegador para não descartar os dados deste site quando faltar espaço.
+  let askedToKeep = false;
+
+  function askToKeepData() {
+    if (askedToKeep || !navigator.storage || !navigator.storage.persist) return;
+    askedToKeep = true;
+    navigator.storage.persist().catch(() => {});
   }
 
   function removePref(n) {
@@ -281,6 +348,8 @@
       if (!measure()) return;
       stopAnim();
       try { svg.setPointerCapture(e.pointerId); } catch (err) { /* ponteiro sintético */ }
+      // Um novo primeiro dedo significa que não há outro na tela: descarta toques que ficaram presos.
+      if (e.isPrimary) pointers.clear();
       pointers.set(e.pointerId, local(e));
       if (pointers.size === 1) gesture = { tap: true, t: performance.now(), start: local(e) };
       else if (gesture) gesture.tap = false;
@@ -528,10 +597,14 @@
     el.padOk.disabled = !check.ok;
   }
 
+  let shakeTimer = 0;
+
   function padShake() {
     el.padDisplay.classList.remove('shake');
     void el.padDisplay.offsetWidth;
     el.padDisplay.classList.add('shake');
+    clearTimeout(shakeTimer);
+    shakeTimer = setTimeout(() => el.padDisplay.classList.remove('shake'), 400);
     buzz(40);
   }
 
@@ -603,6 +676,7 @@
   }
 
   function openTurn() {
+    turnBusyUntil = performance.now() + 350;
     el.turn.hidden = false;
     renderTurn();
     buzz(20);
@@ -612,7 +686,18 @@
     el.turn.hidden = true;
   }
 
+  // Estes botões trocam de função no mesmo lugar; um toque duplo sem querer não pode valer duas vezes.
+  let turnBusyUntil = 0;
+
+  function turnBusy() {
+    const now = performance.now();
+    if (now < turnBusyUntil) return true;
+    turnBusyUntil = now + 450;
+    return false;
+  }
+
   function turnYes() {
+    if (turnBusy()) return;
     const kind = el.turn.dataset.kind;
     if (kind === 'pref' || kind === 'fallback') {
       state.chosen = current().n;
@@ -626,6 +711,7 @@
   }
 
   function turnNo() {
+    if (turnBusy()) return;
     const kind = el.turn.dataset.kind;
     if (kind === 'done') {
       state.chosen = null;
@@ -667,7 +753,14 @@
     el.toastMsg.textContent = msg;
     el.toastAction.hidden = !opts.action;
     el.toastAction.textContent = opts.action || '';
-    el.toastAction.onclick = opts.run ? () => { hideToast(); opts.run(); } : null;
+    // O aviso pode nascer debaixo do dedo que acabou de tocar numa vaga; o clique desse mesmo
+    // toque não pode acionar o "Desfazer". Só vale clique feito depois de o aviso aparecer.
+    const shownAt = performance.now();
+    el.toastAction.onclick = opts.run ? () => {
+      if (performance.now() - shownAt < 500) return;
+      hideToast();
+      opts.run();
+    } : null;
     el.toast.hidden = true;
     void el.toast.offsetWidth;
     el.toast.hidden = false;
@@ -720,9 +813,12 @@
 
   function confirmResetDraw() {
     if (!state.taken.length && state.chosen == null) { toast('Nenhuma vaga foi riscada ainda'); return; }
+    const count = state.taken.length;
+    const freed = count === 1 ? 'A vaga riscada volta a ficar livre' : `As ${count} vagas riscadas voltam a ficar livres`;
+    const undone = state.chosen != null ? (count ? ' e a sua escolha é desfeita' : 'A sua escolha é desfeita') : '';
     openSheet({
       title: 'Zerar o sorteio?',
-      text: `As ${state.taken.length} vagas riscadas voltam a ficar livres. A sua lista de preferência continua igual.`,
+      text: `${count ? freed : ''}${undone}. A sua lista de preferência continua igual.`,
       actions: [{ label: 'Zerar o sorteio', kind: 'danger', run: () => { state.taken = []; state.chosen = null; feed = { msg: '', tone: 'idle' }; buf = ''; commit(); toast('Sorteio zerado'); } }],
       cancel: 'Cancelar',
     });
@@ -742,6 +838,7 @@
   function shareList() {
     if (!state.prefs.length) { toast('Monte a lista antes de compartilhar'); return; }
     const url = location.origin + location.pathname + '#l=' + state.prefs.join('.');
+    askToKeepData();
     const manual = () => openSheet({
       title: 'Link da sua lista',
       text: 'Copie e abra no outro aparelho:',
@@ -756,18 +853,34 @@
     }
   }
 
-  function importFromHash() {
-    const m = location.hash.match(/^#l=([\d.]+)$/);
-    if (!m) return;
-    const list = [...new Set(m[1].split('.').map(Number).filter((n) => LOT.byNum[n]))];
-    history.replaceState(null, '', location.pathname + location.search);
-    if (!list.length || list.join() === state.prefs.join()) return;
-    const apply = () => { state.prefs = list; commit(); toast(`Lista importada: ${list.length} vagas`); };
-    if (!state.prefs.length) { apply(); return; }
+  // Lê a lista que veio no endereço: um link compartilhado ou a cópia de segurança do próprio app.
+  function importFromAddress() {
+    const link = readAddress();
+    if (!link || !(link.prefs.length || link.taken.length)) return;
+    const own = link.stamp > 0;
+    const samePrefs = String(link.prefs) === String(state.prefs);
+    const same = samePrefs && (!own || (String(link.taken) === String(state.taken) && link.chosen === state.chosen));
+    if (same) return;
+
+    const apply = (message) => {
+      state.prefs = link.prefs;
+      if (own) { state.taken = link.taken; state.chosen = link.chosen; }
+      commit();
+      toast(message);
+    };
+    const count = `${link.prefs.length} ${link.prefs.length === 1 ? 'vaga' : 'vagas'}`;
+    const nothingHere = !state.prefs.length && !state.taken.length && state.chosen == null;
+
+    if (nothingHere) { apply(own ? `Lista recuperada do endereço da página: ${count}` : `Lista importada: ${count}`); return; }
+    // endereço antigo de uma aba que ficou para trás: o que está salvo aqui é mais novo
+    if (own && link.stamp <= state.savedAt) return;
+    if (!state.prefs.length && !own) { apply(`Lista importada: ${count}`); return; }
+
+    const crossed = own && link.taken.length ? ` e ${link.taken.length} ${link.taken.length === 1 ? 'vaga riscada' : 'vagas riscadas'}` : '';
     openSheet({
       title: 'Importar a lista do link?',
-      text: `O link traz uma lista com ${list.length} vagas. Ela substitui a sua lista atual, de ${state.prefs.length}.`,
-      actions: [{ label: 'Substituir a minha lista', kind: 'primary', run: apply }],
+      text: `O link traz uma lista com ${count}${crossed}. Ela substitui a que está neste aparelho, de ${state.prefs.length}.`,
+      actions: [{ label: 'Substituir a minha lista', kind: 'primary', run: () => apply(`Lista importada: ${count}`) }],
       cancel: 'Manter a minha',
     });
   }
@@ -924,6 +1037,8 @@
       el.addInput.select();
     }
   });
+  // No iPhone, fechar o teclado pode deixar a página deslocada; volta ao lugar.
+  el.addInput.addEventListener('blur', () => { window.scrollTo(0, 0); });
   el.addInput.addEventListener('input', () => { el.addInput.value = el.addInput.value.replace(/\D/g, '').slice(0, 3); });
 
   const pickOnMap = () => { state.mapMode = 'lista'; state.tab = 'mapa'; save(); renderChrome(); panzoom.measure(); };
@@ -980,6 +1095,9 @@
     }
     const typing = e.target instanceof HTMLInputElement;
     if (typing || e.ctrlKey || e.metaKey || e.altKey || !el.sheet.hidden || !el.turn.hidden) return;
+    // Enter num botão focado (fora do teclado numérico) aciona o botão, não o "Riscar".
+    const onOtherButton = e.target instanceof HTMLButtonElement && !e.target.closest('.pad-keys');
+    if (onOtherButton && (e.key === 'Enter' || e.key === ' ')) return;
     const drawVisible = wide.matches ? state.panel === 'sorteio' : state.tab === 'sorteio';
     if (!drawVisible) return;
     if (/^\d$/.test(e.key)) padKey(e.key);
@@ -988,19 +1106,32 @@
   });
 
   wide.addEventListener('change', () => { renderChrome(); panzoom.measure(); });
+
+  // Outra aba deste navegador mudou os dados: acompanha, para uma não salvar por cima da outra.
+  window.addEventListener('storage', (e) => {
+    if (e.key !== null && e.key !== STORE) return;
+    loadState(true);
+    render();
+    syncAddress();
+  });
+
+  // No iOS, o estado :active dos botões só aparece se a página escutar toques.
+  document.addEventListener('touchstart', () => {}, { passive: true });
   document.addEventListener('visibilitychange', keepAwake);
-  window.addEventListener('hashchange', importFromHash);
+  window.addEventListener('hashchange', () => { importFromAddress(); syncAddress(); });
 
   // ---------- início ----------
 
   loadState();
   render();
+  importFromAddress(); // antes de gravar: o endereço pode ser a única cópia que sobrou
+  save();
   panzoom.measure();
-  importFromHash();
   keepAwake();
 
+  // Em localhost o service worker fica desligado (não servir arquivos antigos), salvo com ?sw.
   const local = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
-  if ('serviceWorker' in navigator && !local) {
+  if ('serviceWorker' in navigator && (!local || /[?&]sw(&|$)/.test(location.search))) {
     window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
   }
 })();

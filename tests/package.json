@@ -1,0 +1,12 @@
+{
+  "name": "sorteio-vagas-tests",
+  "private": true,
+  "type": "module",
+  "description": "Testes de ponta a ponta no motor do Safari (WebKit) e no Chromium",
+  "scripts": {
+    "test": "node bughunt.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.50.0"
+  }
+}
