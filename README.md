@@ -41,5 +41,5 @@ python -m http.server 8790
 ```
 
 Em `localhost` o service worker não é registrado, para não servir arquivos antigos.
-No site publicado o app abre do cache e se atualiza em segundo plano, então uma mudança
-aparece na segunda abertura.
+No site publicado ele busca a versão mais nova quando há sinal e cai para o cache quando
+não há (ou quando a rede demora mais de 2,5 s).

@@ -1,5 +1,5 @@
 /* Deixa o app abrir sem internet (o salão do sorteio pode não ter sinal). */
-const CACHE = 'sorteio-vagas-v1';
+const CACHE = 'sorteio-vagas-v2';
 const SHELL = [
   './',
   'index.html',
@@ -26,7 +26,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Responde do cache na hora e atualiza em segundo plano.
+// Com sinal, busca a versão mais nova; sem sinal (ou com sinal lento), responde do cache.
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
@@ -35,16 +35,20 @@ self.addEventListener('fetch', (event) => {
   if (!ours && !FONT_HOSTS.includes(url.hostname)) return;
 
   event.respondWith(
-    caches.open(CACHE).then((cache) =>
-      cache.match(request, { ignoreSearch: ours }).then((cached) => {
-        const fresh = fetch(request).then((response) => {
-          if (response.ok) cache.put(request, response.clone());
-          return response;
-        });
-        if (!cached) return fresh;
+    caches.open(CACHE).then(async (cache) => {
+      const cached = await cache.match(request, { ignoreSearch: ours });
+      const fresh = fetch(ours ? request.url : request, ours ? { cache: 'no-cache' } : undefined).then((response) => {
+        if (response.ok) cache.put(request, response.clone());
+        return response;
+      });
+      if (!cached) return fresh;
+      if (!ours) {
+        // as fontes não mudam: cache primeiro
         event.waitUntil(fresh.catch(() => {}));
         return cached;
-      })
-    )
+      }
+      const slow = new Promise((resolve) => setTimeout(() => resolve(cached), 2500));
+      return Promise.race([fresh.catch(() => cached), slow]);
+    })
   );
 });

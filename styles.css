@@ -274,6 +274,8 @@ ol, ul { list-style: none; padding: 0; }
 /* ---------- lista ---------- */
 
 .view-list { flex-direction: column; overflow-y: auto; overscroll-behavior: contain; padding: 18px 16px 24px; }
+/* os filhos não encolhem: quem rola é a coluna inteira */
+.view-list > * { flex-shrink: 0; }
 
 .list-head h1 { font: 700 27px/1.05 var(--display); letter-spacing: .01em; }
 .list-head p { margin-top: 6px; color: var(--muted); font-size: 14.5px; }
