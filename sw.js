@@ -1,5 +1,5 @@
 /* Deixa o app abrir sem internet (o salão do sorteio pode não ter sinal). */
-const CACHE = 'sorteio-vagas-v5';
+const CACHE = 'sorteio-vagas-v6';
 const SHELL = [
   './',
   'index.html',

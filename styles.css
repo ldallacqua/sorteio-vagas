@@ -197,13 +197,6 @@ ol, ul { list-style: none; padding: 0; }
 .m-ground { fill: var(--ground); stroke: rgba(255, 255, 255, .1); stroke-width: 1.5; stroke-linejoin: round; }
 .m-area { fill: rgba(255, 255, 255, .045); }
 
-.m-street polygon { fill: #111316; }
-.m-street text {
-  fill: var(--faint);
-  font: 600 13px var(--display); letter-spacing: .22em; text-transform: uppercase; text-anchor: middle;
-  pointer-events: none;
-}
-
 .m-block polygon { fill: var(--bf); stroke: var(--bs); stroke-width: 1.5; stroke-linejoin: round; }
 .m-block text {
   fill: var(--bt);

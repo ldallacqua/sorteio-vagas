@@ -214,11 +214,7 @@ def main(pdf_path):
     xs = [x for x, _ in lot.exterior.coords]
     ys = [y for _, y in lot.exterior.coords]
     pad, pad_top, pad_bottom = 12, 50, 16  # em cima fica o aviso do mapa (.map-hint)
-    left = (street.x1 - 22) * SCALE
-    view = dict(x=round(left - pad), y=round(min(ys) * SCALE - pad_top), w=round(max(xs) * SCALE - left + 2 * pad), h=round((max(ys) - min(ys)) * SCALE + pad_top + pad_bottom))
-    top, bottom = view['y'] / SCALE, (view['y'] + view['h']) / SCALE  # a avenida ocupa a altura toda do desenho
-    street_strip = [(street.x1 - 22, top), (street.x1, top), (street.x1, bottom), (street.x1 - 22, bottom)]
-    street_label = [round((street.x1 - 11) * SCALE, 1), round((min(ys) + max(ys)) / 2 * SCALE, 1)]
+    view = dict(x=round(min(xs) * SCALE - pad), y=round(min(ys) * SCALE - pad_top), w=round((max(xs) - min(xs)) * SCALE + 2 * pad), h=round((max(ys) - min(ys)) * SCALE + pad_top + pad_bottom))
 
     counts = Counter(size.values())
     out = TEMPLATE
@@ -228,7 +224,6 @@ def main(pdf_path):
         '@BLOCKS@': '\n'.join(f"    {{ id: {i}, name: 'Bloco {i}', label: {fmt([label])[1:-1]}, pts: {fmt(pts)} }}," for i, pts, label in blocks),
         '@AREAS@': '\n'.join(f'    {fmt(a)},' for a in sorted(areas)),
         '@GROUND@': fmt(lot.exterior.coords[:-1]),
-        '@STREET@': f"{{ name: 'Av. Alberto Ramos', label: [{street_label[0]:g}, {street_label[1]:g}], pts: {fmt(street_strip)} }}",
         '@VIEWBOX@': f"{{ x: {view['x']}, y: {view['y']}, w: {view['w']}, h: {view['h']} }}",
         '@SCALE@': f'{SCALE:g}',
         '@COUNTS@': f"{counts['G']} grandes, {counts['M']} médias, {counts['P']} pequenas",
@@ -278,8 +273,6 @@ TEMPLATE = """/*
   // Contorno do terreno.
   const GROUND = @GROUND@;
 
-  const STREET = @STREET@;
-
   const VIEWBOX = @VIEWBOX@;
 
   // ---------- geometria derivada
@@ -323,7 +316,7 @@ TEMPLATE = """/*
   const byNum = {};
   for (const s of spots) byNum[s.n] = s;
 
-  window.LOT = { spots, byNum, blocks: BLOCKS, areas: AREAS, special: SPECIAL, ground: GROUND, street: STREET, viewBox: VIEWBOX };
+  window.LOT = { spots, byNum, blocks: BLOCKS, areas: AREAS, special: SPECIAL, ground: GROUND, viewBox: VIEWBOX };
 })();
 """
 

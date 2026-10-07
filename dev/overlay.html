@@ -9,7 +9,7 @@
   .wrap img, .wrap svg { position: absolute; inset: 0; width: 1666.8px; height: 1178.6px; }
   polygon { fill: rgba(0, 120, 255, .12); stroke: #06f; stroke-width: 1; }
   polygon.block { fill: rgba(255, 0, 255, .12); stroke: #f0f; }
-  polygon.area, polygon.ground, polygon.street { fill: none; stroke: #0a0; stroke-dasharray: 4 3; }
+  polygon.area, polygon.ground { fill: none; stroke: #0a0; stroke-dasharray: 4 3; }
   polygon.special { fill: rgba(0, 0, 0, .2); stroke: #000; }
   line { stroke-width: 2.4; }
   text { font: 700 8px system-ui; fill: #d00; text-anchor: middle; }
@@ -22,7 +22,7 @@
 <script>
   const L = window.LOT, p = (pts) => pts.map((q) => q.join(',')).join(' ');
   const color = { G: '#0b0', M: '#e6b800', P: '#e00' };
-  let h = `<polygon class="ground" points="${p(L.ground)}"/><polygon class="street" points="${p(L.street.pts)}"/>`;
+  let h = `<polygon class="ground" points="${p(L.ground)}"/>`;
   h += L.areas.map((a) => `<polygon class="area" points="${p(a)}"/>`).join('');
   h += L.blocks.map((b) => `<polygon class="block" points="${p(b.pts)}"/>`).join('');
   h += L.special.map((s) => `<polygon class="special" points="${p(s.pts)}"/>`).join('');

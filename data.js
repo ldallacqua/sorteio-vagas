@@ -248,9 +248,7 @@
   // Contorno do terreno.
   const GROUND = [[182.9, 412.3], [190.9, 541.7], [212.3, 650], [286.1, 881.8], [502.8, 797.3], [551.6, 785.4], [683.8, 1164.4], [1004, 1045], [905.2, 783.4], [937, 769.1], [1286.4, 639.7], [1383, 908], [1491.8, 866.3], [1510.8, 835.1], [1394.4, 117.6], [1369.9, 90.3], [1352.7, 79.6], [226.6, 13.9], [225.4, 35], [184.1, 43.7], [176.6, 232.2], [173.5, 229.4], [173.7, 237.7], [176.6, 234.1], [178.6, 296.4], [177.5, 296.9]];
 
-  const STREET = { name: 'Av. Alberto Ramos', label: [158.1, 589.1], pts: [[142.7, -36], [173.5, -36], [173.5, 1180], [142.7, 1180]] };
-
-  const VIEWBOX = { x: 131, y: -36, w: 1392, h: 1216 };
+  const VIEWBOX = { x: 162, y: -36, w: 1361, h: 1216 };
 
   // ---------- geometria derivada
 
@@ -293,5 +291,5 @@
   const byNum = {};
   for (const s of spots) byNum[s.n] = s;
 
-  window.LOT = { spots, byNum, blocks: BLOCKS, areas: AREAS, special: SPECIAL, ground: GROUND, street: STREET, viewBox: VIEWBOX };
+  window.LOT = { spots, byNum, blocks: BLOCKS, areas: AREAS, special: SPECIAL, ground: GROUND, viewBox: VIEWBOX };
 })();

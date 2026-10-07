@@ -206,9 +206,7 @@
   }
 
   function mapMarkup() {
-    const st = LOT.street;
-    let h = `<g class="m-street"><polygon points="${pts(st.pts)}"/><text x="${st.label[0]}" y="${st.label[1]}" dy=".35em" transform="rotate(-90 ${st.label[0]} ${st.label[1]})">${st.name}</text></g>`;
-    h += `<polygon class="m-ground" points="${pts(LOT.ground)}"/>`;
+    let h = `<polygon class="m-ground" points="${pts(LOT.ground)}"/>`;
     for (const a of LOT.areas) h += `<polygon class="m-area" points="${pts(a)}"/>`;
     for (const b of LOT.blocks) {
       h += `<g class="m-block b${b.id}"><polygon points="${pts(b.pts)}"/><text x="${b.label[0]}" y="${b.label[1]}" dy=".35em">${b.name}</text></g>`;
