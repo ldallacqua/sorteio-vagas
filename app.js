@@ -206,7 +206,9 @@
   }
 
   function mapMarkup() {
-    let h = `<polygon class="m-ground" points="${pts(LOT.ground)}"/>`;
+    const st = LOT.street;
+    let h = `<g class="m-street"><polygon points="${pts(st.pts)}"/><text x="${st.label[0]}" y="${st.label[1]}" dy=".35em" transform="rotate(-90 ${st.label[0]} ${st.label[1]})">${st.name}</text></g>`;
+    h += `<polygon class="m-ground" points="${pts(LOT.ground)}"/>`;
     for (const a of LOT.areas) h += `<polygon class="m-area" points="${pts(a)}"/>`;
     for (const b of LOT.blocks) {
       h += `<g class="m-block b${b.id}"><polygon points="${pts(b.pts)}"/><text x="${b.label[0]}" y="${b.label[1]}" dy=".35em">${b.name}</text></g>`;
@@ -804,7 +806,7 @@
       body: '<p class="note">Os tamanhos (grande, média, pequena) foram lidos da foto do mapa impresso. Antes do sorteio, confira no papel as vagas que mais importam para você.</p>',
       actions: [
         { label: 'Copiar link com a minha lista', run: shareList },
-        { label: 'Ver a foto do mapa original', run: () => window.open('img/mapa-original.jpg', '_blank', 'noopener') },
+        { label: 'Ver o mapa original', run: () => window.open('img/mapa-original.jpg', '_blank', 'noopener') },
         { label: 'Zerar o sorteio (devolve todas as vagas)', kind: 'danger', run: confirmResetDraw },
         { label: 'Apagar a minha lista', kind: 'danger', run: confirmClearList },
       ],

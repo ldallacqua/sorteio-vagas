@@ -27,14 +27,18 @@ Se a sua lista acabar antes da sua vez, o app sugere a vaga livre mais perto da 
 
 ## O mapa
 
-O desenho foi refeito a partir da foto do mapa impresso (`img/mapa-original.jpg`):
-211 vagas, 2 vagas PCD e a do zelador, que não entram no sorteio. As coordenadas e os
-tamanhos ficam em `data.js`; `dev/overlay.html` sobrepõe o desenho à foto para conferir.
+O desenho sai direto do PDF oficial do mapa de vagas, que é vetorial: 211 vagas, 2 vagas
+PCD e a do zelador, que não entram no sorteio. `dev/extract_map.py` lê do PDF o contorno
+de cada vaga, o número e a linha colorida de tamanho (grande, média ou pequena) e gera
+`data.js` e `img/mapa-original.jpg`; `dev/overlay.html` sobrepõe o desenho ao mapa
+original para conferir.
 
-Os tamanhos (grande, média, pequena) foram lidos das linhas coloridas da foto.
-Dois trechos ficaram duvidosos e vale conferir no papel: **036 a 058 pares** (lidas
-como médias) e **062 a 068** (lidas como grandes). Para corrigir, edite os conjuntos
-`GRANDES` e `PEQUENAS` no topo de `data.js`.
+```bash
+pip install pymupdf shapely
+python dev/extract_map.py caminho/para/mapa.pdf
+```
+
+São 11 vagas grandes, 95 médias e 105 pequenas.
 
 ## Desenvolvimento
 

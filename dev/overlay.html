@@ -4,24 +4,25 @@
 <title>Conferência do mapa</title>
 <style>
   body { margin: 0; background: #222; font: 14px system-ui; color: #eee; }
-  .wrap { position: relative; width: 1280px; height: 1108px; transform-origin: 0 0; }
-  .wrap img, .wrap svg { position: absolute; inset: 0; width: 1280px; height: 1108px; }
+  /* a página inteira do PDF, em unidades do mapa (ver dev/extract_map.py) */
+  .wrap { position: relative; width: 1666.8px; height: 1178.6px; transform-origin: 0 0; }
+  .wrap img, .wrap svg { position: absolute; inset: 0; width: 1666.8px; height: 1178.6px; }
   polygon { fill: rgba(0, 120, 255, .12); stroke: #06f; stroke-width: 1; }
   polygon.block { fill: rgba(255, 0, 255, .12); stroke: #f0f; }
-  polygon.area, polygon.ground { fill: none; stroke: #0a0; stroke-dasharray: 4 3; }
+  polygon.area, polygon.ground, polygon.street { fill: none; stroke: #0a0; stroke-dasharray: 4 3; }
   polygon.special { fill: rgba(0, 0, 0, .2); stroke: #000; }
   line { stroke-width: 2.4; }
   text { font: 700 8px system-ui; fill: #d00; text-anchor: middle; }
 </style>
 <div class="wrap" id="wrap">
   <img src="../img/mapa-original.jpg" alt="">
-  <svg id="svg" viewBox="0 0 1280 1108"></svg>
+  <svg id="svg" viewBox="0 0 1666.8 1178.6"></svg>
 </div>
 <script src="../data.js"></script>
 <script>
   const L = window.LOT, p = (pts) => pts.map((q) => q.join(',')).join(' ');
   const color = { G: '#0b0', M: '#e6b800', P: '#e00' };
-  let h = `<polygon class="ground" points="${p(L.ground)}"/>`;
+  let h = `<polygon class="ground" points="${p(L.ground)}"/><polygon class="street" points="${p(L.street.pts)}"/>`;
   h += L.areas.map((a) => `<polygon class="area" points="${p(a)}"/>`).join('');
   h += L.blocks.map((b) => `<polygon class="block" points="${p(b.pts)}"/>`).join('');
   h += L.special.map((s) => `<polygon class="special" points="${p(s.pts)}"/>`).join('');
